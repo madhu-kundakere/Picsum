@@ -7,16 +7,18 @@
 
 import UIKit
 
-class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
+class PhotosViewController: UIViewController {
     
     @IBOutlet weak var tableView: UITableView!
     var viewModel = PhotoViewModel()
+    private var refreshControl: UIRefreshControl!
     override func viewDidLoad() {
         super.viewDidLoad()
         self.tableView.delegate = self
         self.tableView.dataSource = self
         self.tableView.register(PhotoTableViewCell.nib(), forCellReuseIdentifier: PhotoTableViewCell.identifier)
-         fetchIntialData()
+        fetchIntialData()
+        setUpRefershControl()
     }
     
     private func fetchIntialData() {
@@ -25,6 +27,23 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
             tableView.reloadData()
         }
     }
+    
+    private func setUpRefershControl() {
+        refreshControl = UIRefreshControl()
+        refreshControl.addTarget(self, action: #selector(refreshData), for: .valueChanged)
+        tableView.refreshControl = refreshControl
+    }
+    
+    @objc private func refreshData() {
+        Task {
+            await viewModel.fetchPhotosData()
+            tableView.reloadData()
+            tableView.refreshControl?.endRefreshing()
+        }
+    }
+}
+
+extension PhotosViewController: UITableViewDelegate, UITableViewDataSource {
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         print(viewModel.photos.count)
@@ -39,10 +58,14 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     }
     
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        return UITableView.automaticDimension
+        let item = viewModel.photos[indexPath.row]
+        let aspectRatio = CGFloat(item.height) / CGFloat(item.width)
+        let cellWidth = tableView.frame.width
+        return cellWidth * aspectRatio + 60
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
         let item = viewModel.photos[indexPath.row]
         if item.isChecked {
             let alert = UIAlertController(title: "Descrpition", message: item.url, preferredStyle: .alert)
