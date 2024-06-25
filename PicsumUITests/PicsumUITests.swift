@@ -2,7 +2,7 @@
 //  PicsumUITests.swift
 //  PicsumUITests
 //
-//  Created by Singh, Manoj (Cognizant) on 25/06/24.
+//  Created by Madhu on 25/06/24.
 //
 
 import XCTest
