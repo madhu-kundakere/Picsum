@@ -8,25 +8,30 @@
 import Foundation
 
 protocol NetworkServiceAble {
-    func fetchPhotosData(page: Int)async throws -> [TableViewItem]
+    func fetchPhotosData(page: Int, completion: @escaping (Result<[PhotoData], Error>)-> Void)
 }
 
 struct NetworkService: NetworkServiceAble {
     
-    
-    func fetchPhotosData(page: Int) async throws -> [TableViewItem] {
+    func fetchPhotosData(page: Int, completion: @escaping (Result<[PhotoData], Error>)-> Void)  {
         let urlString = "https://picsum.photos/v2/list?page=\(page)&limit=20"
         
         guard let url = URL(string: urlString) else {
-            throw NetworkError.invalidURL
+            completion(.failure(NetworkError.invalidURL))
+            return
         }
-        let (data, _) = try await URLSession.shared.data(from: url)
-        do {
-            let photos = try JSONDecoder().decode([PhotoData].self, from: data)
-            return photos.map { TableViewItem(id: $0.id, author: $0.author, url: $0.url, downloadUrl: $0.downloadURL, isChecked: false)}
-        } catch {
-            throw NetworkError.failedToDecode
-        }
+        URLSession.shared.dataTask(with: url) {data, _, error in
+            guard let data = data, error == nil else {
+                completion(.failure(NetworkError.failedToFetch))
+                return
+            }
+            do {
+                let photos = try JSONDecoder().decode([PhotoData].self, from: data)
+                completion(.success(photos))
+            } catch {
+                completion(.failure(NetworkError.failedToDecode))
+            }
+        }.resume()
     }
 }
 

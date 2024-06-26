@@ -2,7 +2,7 @@
 //  AppDelegate.swift
 //  Picsum
 //
-//  Created by Madhuon 25/06/24.
+//  Created by Madhu on 25/06/24.
 //
 
 import UIKit

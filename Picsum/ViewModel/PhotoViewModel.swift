@@ -8,18 +8,39 @@
 import Foundation
 
 class PhotoViewModel {
-    var photos: [TableViewItem] = []
-    
-    private let network = NetworkService()
+    var photos: [PhotoData] = []
+    private let network: NetworkServiceAble
     private var page: Int = 1
+
+    init(networkService: NetworkServiceAble = NetworkService()) {
+        self.network = networkService
+    }
     
-    func fetchPhotosData() async  {
-        do {
-            let newItems = try await network.fetchPhotosData(page: page)
-            self.photos.append(contentsOf: newItems)
-            page += 1
-        } catch {
-            print(NetworkError.failedToDecode)
+    func fetchPhotosData(onRefresh: Bool = false,completion:  @escaping () -> Void) {
+        network.fetchPhotosData(page: page) { [weak self] result in
+            guard let strongSelf = self else {
+                completion()
+                return
+            }
+            switch result {
+            case .success(let photos):
+                DispatchQueue.main.async {
+                    if onRefresh {
+                        strongSelf.photos = photos
+                    } else {
+                        strongSelf.photos.append(contentsOf: photos)
+                        strongSelf.page += 1
+                    }
+                    completion()
+                }
+            case .failure(let error):
+                completion()
+                print("faild to fetch the data \(error)")
+            }
         }
+    }
+   
+    func updateCheckBoxForItem(_ index: Int, isChecked: Bool) {
+            photos[index].markCheck(isChecked: isChecked)
     }
 }

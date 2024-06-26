@@ -7,26 +7,42 @@
 
 import UIKit
 
+
 class PhotosViewController: UIViewController {
+    private enum Constants {
+        static let title = "Warning"
+        static let alertTitle = "OK"
+        static let checkMarkClickMessage = "You Should select the CheckBox"
+        
+    }
     
     @IBOutlet weak var tableView: UITableView!
     var viewModel = PhotoViewModel()
     private var refreshControl: UIRefreshControl!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         self.tableView.delegate = self
         self.tableView.dataSource = self
-        self.tableView.register(PhotoTableViewCell.nib(), forCellReuseIdentifier: PhotoTableViewCell.identifier)
-        fetchIntialData()
+        self.tableView.rowHeight = UITableView.automaticDimension
+        self.tableView.estimatedRowHeight = 100
+        self.tableView.register(PhotoTableViewCell.self, forCellReuseIdentifier: PhotoTableViewCell.identifier)
+        fetchData()
         setUpRefershControl()
+        navigationItem.hidesBackButton = true
     }
     
-    private func fetchIntialData() {
-        Task {
-            await viewModel.fetchPhotosData()
-            tableView.reloadData()
+    private func fetchData() {
+        viewModel.fetchPhotosData { [weak self] in
+            guard let strongSelf = self else {
+                return
+            }
+            DispatchQueue.main.async {
+                strongSelf.tableView.reloadData()
+            }
         }
     }
+    
     
     private func setUpRefershControl() {
         refreshControl = UIRefreshControl()
@@ -35,47 +51,52 @@ class PhotosViewController: UIViewController {
     }
     
     @objc private func refreshData() {
-        Task {
-            await viewModel.fetchPhotosData()
-            tableView.reloadData()
-            tableView.refreshControl?.endRefreshing()
+        viewModel.fetchPhotosData(onRefresh: true) { [weak self] in
+            guard let strongSelf = self else {
+                return
+            }
+            DispatchQueue.main.async {
+                strongSelf.tableView.reloadData()
+                strongSelf.tableView.refreshControl?.endRefreshing()
+            }
         }
     }
 }
-
 extension PhotosViewController: UITableViewDelegate, UITableViewDataSource {
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        print(viewModel.photos.count)
         return viewModel.photos.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "PhotoTableViewCell", for: indexPath) as! PhotoTableViewCell
+        let cell = tableView.dequeueReusableCell(withIdentifier: PhotoTableViewCell.identifier, for: indexPath) as! PhotoTableViewCell
+        cell.delegate = self
+        if  indexPath.row == viewModel.photos.count - 1 {
+            self.fetchData()
+        }
         let item = viewModel.photos[indexPath.row]
-        cell.configure(with: item)
+        cell.configure(with: item, atIndex: indexPath.row)
         return cell
-    }
-    
-    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        let item = viewModel.photos[indexPath.row]
-        let aspectRatio = CGFloat(item.height) / CGFloat(item.width)
-        let cellWidth = tableView.frame.width
-        return cellWidth * aspectRatio + 60
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         let item = viewModel.photos[indexPath.row]
         if item.isChecked {
-            let alert = UIAlertController(title: "Descrpition", message: item.url, preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            let alert = UIAlertController(title: item.author, message: item.url, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: Constants.alertTitle, style: .default))
             self.present(alert, animated: true)
         } else {
-            let alert = UIAlertController(title: "Descrpition", message: "Check box is not enable", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            let alert = UIAlertController(title: Constants.title, message: Constants.checkMarkClickMessage, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: Constants.alertTitle, style: .default))
             self.present(alert, animated: true)
         }
+    }
+}
+
+extension PhotosViewController: PhotoTableViewCellDelegate {
+    func didSelectCheckMark(for index: Int, isChecked: Bool) {
+        viewModel.updateCheckBoxForItem(index, isChecked: isChecked)
     }
 }
 

@@ -2,28 +2,29 @@
 //  SplashViewController.swift
 //  Picsum
 //
-//  Created by Singh, Manoj (Cognizant) on 25/06/24.
+//  Created by Madhu on 25/06/24.
 //
 
 import UIKit
 
 class SplashViewController: UIViewController {
-
+    let splashScreenDuration = 0.5
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        // Do any additional setup after loading the view.
+        let splashImage = UIImageView(frame: self.view.frame)
+        splashImage.image = UIImage(named: "splashImage")
+        splashImage.contentMode = .scaleAspectFill
+        view.addSubview(splashImage)
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + splashScreenDuration) {
+            self.navigateToPhotosView()
+        }
     }
-    
 
-    /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destination.
-        // Pass the selected object to the new view controller.
+    private func navigateToPhotosView() {
+        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+        let photosVc = storyboard.instantiateViewController(withIdentifier: "PhotosViewController") as! PhotosViewController
+        photosVc.title = "Photos"
+        navigationController?.pushViewController(photosVc, animated: true)
     }
-    */
-
 }
