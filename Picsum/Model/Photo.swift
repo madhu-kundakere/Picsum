@@ -7,11 +7,18 @@
 
 import Foundation
 
-// MARK: - PhotoData
 struct PhotoData: Codable {
-    let id, author: String
-    let width, height: Int
-    let url, downloadURL: String
+    let id: String
+    let author: String
+    let width: Int
+    let height: Int
+    let url: String
+    let downloadURL: String
+    var isChecked = false
+    
+    mutating func markCheck(isChecked: Bool) {
+        self.isChecked = isChecked
+    }
 
     enum CodingKeys: String, CodingKey {
         case id, author, width, height, url
